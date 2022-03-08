@@ -43,8 +43,22 @@ static struct hash* thorough(struct hash* h) {
     return h;
 }
 
+static struct hash* null_val(struct hash* h) {
+    h = hash_insert(h, 42, NULL);
+    assert(hash_lookup(h, 42, is_ctx, NULL));
+    return h;
+}
+
+static struct hash* zero_hash(struct hash* h) {
+    h = hash_insert(h, 0, (void*)42);
+    assert(hash_lookup(h, 0, is_ctx, (void*)42));
+    return h;
+}
+
 int main(void) {
     test(basics);
     test(thorough);
+    test(null_val);
+    test(zero_hash);
     return 0;
 }

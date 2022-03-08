@@ -14,16 +14,15 @@ static void insert(struct hash* h, int hash, void* val) {
     assert(h && h->len <= h->mask);
     const int mask = h->mask;
 
-    int ix = hash & mask;
-    for (int round = 0; round <= mask; round++) {
-        if (h->table[ix].meta == 0) {
-            h->table[ix].meta = 1;
-            h->table[ix].hash = hash;
-            h->table[ix].val  = val;
+    for (int i = hash & mask, round = 0; round <= mask; round++) {
+        if (h->table[i].meta == 0) {
+            h->table[i].meta = 1;
+            h->table[i].hash = hash;
+            h->table[i].val  = val;
             h->len++;
             return;
         }
-        ix = (ix+1) & mask;
+        i = (i+1) & mask;
     }
 
     assert(0 && "unreachable");
@@ -38,9 +37,9 @@ struct hash* hash_insert(struct hash* h, int hash, void* val) {
         struct hash* grown = calloc(1, sizeof *h + (size_t)new_cap * sizeof *h->table);
         grown->mask = new_cap-1;
 
-        for (int ix = 0; ix < cap; ix++) {
-            if (h->table[ix].meta) {
-                insert(grown, h->table[ix].hash, h->table[ix].val);
+        for (int i = 0; i < cap; i++) {
+            if (h->table[i].meta) {
+                insert(grown, h->table[i].hash, h->table[i].val);
             }
         }
         assert(grown->len == len);
@@ -55,15 +54,14 @@ struct hash* hash_insert(struct hash* h, int hash, void* val) {
 _Bool hash_lookup(const struct hash* h, int hash, _Bool(*match)(void* val, void* ctx), void* ctx) {
     const int mask = h ? h->mask : -1;
 
-    int ix = hash & mask;
-    for (int round = 0; round <= mask; round++) {
-        if (h->table[ix].meta == 0) {
+    for (int i = hash & mask, round = 0; round <= mask; round++) {
+        if (h->table[i].meta == 0) {
             return 0;
         }
-        if (h->table[ix].hash == hash && match(h->table[ix].val, ctx)) {
+        if (h->table[i].hash == hash && match(h->table[i].val, ctx)) {
             return 1;
         }
-        ix = (ix+1) & mask;
+        i = (i+1) & mask;
     }
     return 0;
 }
