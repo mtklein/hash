@@ -1,22 +1,23 @@
 #include "hash.h"
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 struct hash {
     int len, mask;
     struct {
-        int   meta, hash;
-        void* val;
+        intptr_t hash;
+        void*    val;
     } table[];
 };
 
 static void insert(struct hash* h, int hash, void* val) {
-    assert(h && h->len <= h->mask);
+    assert(h && h->len <= h->mask && hash != 0);
     const int mask = h->mask;
 
     for (int i = hash & mask, round = 0; round <= mask; round++) {
-        if (h->table[i].meta == 0) {
-            h->table[i].meta = 1;
+        if (h->table[i].hash == 0) {
             h->table[i].hash = hash;
             h->table[i].val  = val;
             h->len++;
@@ -29,8 +30,10 @@ static void insert(struct hash* h, int hash, void* val) {
 }
 
 struct hash* hash_insert(struct hash* h, int hash, void* val) {
+    if (hash == 0) { hash = 1; }
     const int len = h ? h->len    : 0,
               cap = h ? h->mask+1 : 0;
+
     if (len >= cap*3/4) {
         const int new_cap = cap ? 2*cap : 1;
 
@@ -38,8 +41,8 @@ struct hash* hash_insert(struct hash* h, int hash, void* val) {
         grown->mask = new_cap-1;
 
         for (int i = 0; i < cap; i++) {
-            if (h->table[i].meta) {
-                insert(grown, h->table[i].hash, h->table[i].val);
+            if (h->table[i].hash != 0) {
+                insert(grown, (int)h->table[i].hash, h->table[i].val);
             }
         }
         assert(grown->len == len);
@@ -47,21 +50,23 @@ struct hash* hash_insert(struct hash* h, int hash, void* val) {
         free(h);
         h = grown;
     }
+
     insert(h, hash, val);
     return h;
 }
 
-_Bool hash_lookup(const struct hash* h, int hash, _Bool(*match)(void* val, void* ctx), void* ctx) {
+bool hash_lookup(const struct hash* h, int hash, bool(*match)(void* val, void* ctx), void* ctx) {
+    if (hash == 0) { hash = 1; }
     const int mask = h ? h->mask : -1;
 
     for (int i = hash & mask, round = 0; round <= mask; round++) {
-        if (h->table[i].meta == 0) {
-            return 0;
+        if (h->table[i].hash == 0) {
+            return false;
         }
         if (h->table[i].hash == hash && match(h->table[i].val, ctx)) {
-            return 1;
+            return true;
         }
         i = (i+1) & mask;
     }
-    return 0;
+    return false;
 }
