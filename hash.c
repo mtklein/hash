@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 struct hash {
-    int len, cap;
+    int len, mask;
     struct {
         int   meta, hash;
         void* val;
@@ -11,8 +11,8 @@ struct hash {
 };
 
 static void insert(struct hash* h, int hash, void* val) {
-    assert(h && h->len < h->cap);
-    const int mask = h->cap-1;
+    assert(h && h->len <= h->mask);
+    const int mask = h->mask;
 
     int ix = hash & mask;
     for (int round = 0; round <= mask; round++) {
@@ -30,13 +30,13 @@ static void insert(struct hash* h, int hash, void* val) {
 }
 
 struct hash* hash_insert(struct hash* h, int hash, void* val) {
-    const int len = h ? h->len : 0,
-              cap = h ? h->cap : 0;
+    const int len = h ? h->len    : 0,
+              cap = h ? h->mask+1 : 0;
     if (len >= cap*3/4) {
         const int new_cap = cap ? 2*cap : 1;
 
         struct hash* grown = calloc(1, sizeof *h + (size_t)new_cap * sizeof *h->table);
-        grown->cap = new_cap;
+        grown->mask = new_cap-1;
 
         for (int ix = 0; ix < cap; ix++) {
             if (h->table[ix].meta) {
@@ -53,7 +53,7 @@ struct hash* hash_insert(struct hash* h, int hash, void* val) {
 }
 
 _Bool hash_lookup(const struct hash* h, int hash, _Bool(*match)(void* val, void* ctx), void* ctx) {
-    const int mask = h ? h->cap-1 : -1;
+    const int mask = h ? h->mask : -1;
 
     int ix = hash & mask;
     for (int round = 0; round <= mask; round++) {
