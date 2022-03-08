@@ -12,9 +12,10 @@ struct hash {
 
 static void insert(struct hash* h, int hash, void* val) {
     assert(h && h->len < h->cap);
+    const int mask = h->cap-1;
 
-    int ix = hash & (h->cap-1);
-    for (int round = 0; round < h->cap; round++) {
+    int ix = hash & mask;
+    for (int round = 0; round <= mask; round++) {
         if (h->table[ix].meta == 0) {
             h->table[ix].meta = 1;
             h->table[ix].hash = hash;
@@ -22,7 +23,7 @@ static void insert(struct hash* h, int hash, void* val) {
             h->len++;
             return;
         }
-        ix = (ix+1) & (h->cap-1);
+        ix = (ix+1) & mask;
     }
 
     assert(0 && "unreachable");
@@ -52,17 +53,17 @@ struct hash* hash_insert(struct hash* h, int hash, void* val) {
 }
 
 _Bool hash_lookup(const struct hash* h, int hash, _Bool(*match)(void* val, void* ctx), void* ctx) {
-    const int cap = h ? h->cap : 0;
+    const int mask = h ? h->cap-1 : -1;
 
-    int ix = hash & (cap-1);
-    for (int round = 0; round < cap; round++) {
+    int ix = hash & mask;
+    for (int round = 0; round <= mask; round++) {
         if (h->table[ix].meta == 0) {
             return 0;
         }
         if (h->table[ix].hash == hash && match(h->table[ix].val, ctx)) {
             return 1;
         }
-        ix = (ix+1) & (cap-1);
+        ix = (ix+1) & mask;
     }
     return 0;
 }
