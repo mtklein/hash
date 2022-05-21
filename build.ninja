@@ -1,0 +1,28 @@
+builddir = out
+
+cc   = clang -Weverything -Xclang -nostdsysteminc
+asan = $cc -fsanitize=address,integer,undefined
+
+rule compile
+    command = $cc -g -Os -Werror -std=c99 -MD -MF $out.d -c $in -o $out
+    depfile = $out.d
+    deps    = gcc
+
+rule link
+    command = $cc $in -o $out
+
+rule run
+    command = ./$in > $out
+
+build out/hash.o:  compile  hash.c
+build out/test.o:  compile  test.c
+build out/test:    link out/test.o out/hash.o
+build out/test.ok: run  out/test
+
+build out/asan/hash.o:  compile hash.c
+    cc = $asan
+build out/asan/test.o:  compile test.c
+    cc = $asan
+build out/asan/test:    link out/asan/test.o out/asan/hash.o
+    cc = $asan
+build out/asan/test.ok: run out/asan/test
